@@ -4,7 +4,12 @@
 **/*.pyc
 **/*.pyo
 
-**/data/**
+**/data/*/
 
-!**/data/**/*.md
-!**/data/**/*.txt
+!**/data/*.md
+!**/data/*.txt
+!**/data/*.png
+!**/data/*.jpg
+!**/data/*.jpeg
+!**/data/*.bmp
+!**/data/*.gif
