@@ -16,7 +16,7 @@ Keypoint detection is the initial and arguably one of the most critical steps in
 
 ### Difference of Gaussians (DoG)
 
-The Difference of Gaussians (DoG) is a feature enhancement algorithm that approximates the Laplacian of Gaussian (LoG) operator, which is known for its ability to detect blobs (regions of interest that are brighter or darker than their surroundings) at various scales [1]. The LoG operator is computationally expensive due to its second-order derivative nature. DoG offers a computationally efficient alternative by subtracting two Gaussian-blurred versions of an image, each with a slightly different standard deviation.
+The Difference of Gaussians (DoG) is a feature enhancement algorithm that approximates the Laplacian of Gaussian (LoG) operator, which is known for its ability to detect blobs (regions of interest that are brighter or darker than their surroundings) at various scales. The LoG operator is computationally expensive due to its second-order derivative nature. DoG offers a computationally efficient alternative by subtracting two Gaussian-blurred versions of an image, each with a slightly different standard deviation.
 
 Mathematically, a 2D Gaussian function $G(x, y, \sigma)$ is defined as:
 
@@ -32,7 +32,7 @@ The `build_gaussian_pyramid` function in the provided code constructs a Gaussian
 
 ### Harris Corner Detector
 
-While DoG is effective at detecting blob-like structures, it can also identify edges, which are generally less stable for matching purposes. The Harris Corner Detector is employed to refine the set of potential keypoints by identifying true corners, which are characterized by significant intensity variations in all directions [2]. A corner is a point where there is a large change in image intensity in more than one direction.
+While DoG is effective at detecting blob-like structures, it can also identify edges, which are generally less stable for matching purposes. The Harris Corner Detector is employed to refine the set of potential keypoints by identifying true corners, which are characterized by significant intensity variations in all directions. A corner is a point where there is a large change in image intensity in more than one direction.
 
 The Harris Corner Detector works by considering a small window around each pixel and calculating the change in intensity for shifts of this window in various directions. This is encapsulated in the **Structure Tensor** or **Second Moment Matrix** $M$, defined as:
 
@@ -62,7 +62,7 @@ Once keypoints are detected, the next crucial step in image stitching is to desc
 
 ### ORB (Oriented FAST and Rotated BRIEF) Descriptors
 
-ORB (Oriented FAST and Rotated BRIEF) is a highly efficient and robust feature detector and descriptor algorithm, designed as a free alternative to SIFT and SURF [3]. It combines the best aspects of the FAST (Features from Accelerated Segment Test) keypoint detector and the BRIEF (Binary Robust Independent Elementary Features) descriptor, with significant enhancements to improve performance and robustness, particularly regarding rotation invariance.
+ORB (Oriented FAST and Rotated BRIEF) is a highly efficient and robust feature detector and descriptor algorithm, designed as a free alternative to SIFT and SURF. It combines the best aspects of the FAST (Features from Accelerated Segment Test) keypoint detector and the BRIEF (Binary Robust Independent Elementary Features) descriptor, with significant enhancements to improve performance and robustness, particularly regarding rotation invariance.
 
 While the provided code uses DoG+Harris for keypoint detection, it employs ORB for descriptor computation. The process involves:
 
@@ -74,11 +74,11 @@ ORB enhances BRIEF by applying the rotation information obtained in the first st
 
 ### Brute-Force (BF) Matching with Ratio Test
 
-After computing descriptors for keypoints in two images, the next step is to find which descriptors correspond to each other. The Brute-Force (BF) Matcher is a straightforward approach that compares the descriptor of every keypoint in the first image with the descriptor of every keypoint in the second image [4].
+After computing descriptors for keypoints in two images, the next step is to find which descriptors correspond to each other. The Brute-Force (BF) Matcher is a straightforward approach that compares the descriptor of every keypoint in the first image with the descriptor of every keypoint in the second image.
 
 For binary descriptors like ORB, the distance between two descriptors is typically measured using the Hamming distance, which counts the number of positions at which the corresponding bits are different. The BFMatcher finds the best match (the descriptor with the smallest Hamming distance) for each descriptor from the first set in the second set.
 
-To improve the robustness of matching and filter out ambiguous or incorrect matches, a **ratio test** (also known as Lowe's ratio test) is commonly applied [4]. This test was originally proposed for SIFT descriptors but is widely used with other descriptors as well. The principle is as follows:
+To improve the robustness of matching and filter out ambiguous or incorrect matches, a **ratio test** (also known as Lowe's ratio test) is commonly applied. This test was originally proposed for SIFT descriptors but is widely used with other descriptors as well. The principle is as follows:
 
 For each keypoint descriptor in the first image, the BFMatcher finds the two closest matches in the second image. Let $d_1$ be the distance to the closest match and $d_2$ be the distance to the second closest match. If the ratio $d_1 / d_2$ is below a certain threshold (e.g., 0.75, as used in the provided code), then the match is considered good. If the ratio is close to 1, it means that the first and second best matches are very similar, indicating that the match might be ambiguous or unreliable. By discarding such ambiguous matches, the ratio test significantly reduces the number of false positives, leading to a more accurate set of correspondences.
 
@@ -92,7 +92,7 @@ After establishing a set of reliable feature correspondences between images, the
 
 ### Homography Transformation (Projective Transformation)
 
-A homography is a $3 \times 3$ matrix that maps points from one plane to another plane. It is the most general 2D planar projective transformation and has 8 degrees of freedom. Homographies are particularly useful in image stitching when the scene being photographed is planar or when the camera undergoes pure rotation around its optical center [5].
+A homography is a $3 \times 3$ matrix that maps points from one plane to another plane. It is the most general 2D planar projective transformation and has 8 degrees of freedom. Homographies are particularly useful in image stitching when the scene being photographed is planar or when the camera undergoes pure rotation around its optical center.
 
 Given a point $(x, y)$ in the first image and its corresponding point $(u, v)$ in the second image, related by a homography $H$, the relationship in homogeneous coordinates is:
 
@@ -106,22 +106,32 @@ To solve for the 8 unknown parameters of $H$ (since $h_{33}$ can be normalized t
 
 #### Normalized DLT Algorithm
 
-The DLT algorithm solves for $H$ by formulating a system of linear equations from the point correspondences. Each correspondence $(x, y) \leftrightarrow (u, v)$ provides two equations. The normalization step, as described by Hartley [6], is crucial for numerical stability. It involves transforming the input points such that their centroid is at the origin and their average distance from the origin is $\sqrt{2}$. This process is handled by the `normalize_points` function, which computes a normalization matrix $T$ for each set of points.
+The DLT algorithm solves for $H$ by formulating a system of linear equations from the point correspondences. Each correspondence $(x, y) \leftrightarrow (u, v)$ provides two equations. The normalization step, as described by Hartley, is crucial for numerical stability. It involves transforming the input points such that their centroid is at the origin and their average distance from the origin is $\sqrt{2}$. This process is handled by the `normalize_points` function, which computes a normalization matrix $T$ for each set of points.
 
 The normalized DLT process is as follows:
 1.  **Normalize Points**: Apply a similarity transformation (translation and scaling) to both sets of points, $pts1$ and $pts2$, using matrices $T_1$ and $T_2$ respectively, to obtain normalized points $p1_n$ and $p2_n$.
 2.  **Formulate Linear System**: For each normalized correspondence $(x_n, y_n) \leftrightarrow (u_n, v_n)$, construct two rows of a matrix $A$:
-    $$ \begin{bmatrix} -x_n & -y_n & -1 & 0 & 0 & 0 & u_n x_n & u_n y_n & u_n \\ 0 & 0 & 0 & -x_n & -y_n & -1 & v_n x_n & v_n y_n & v_n \end{bmatrix} $$
-    This leads to a system $Ah = 0$, where $h$ is a vector containing the elements of the homography matrix $H_n$ (row-major order).
+
+$$
+\begin{bmatrix} -x_n & -y_n & -1 & 0 & 0 & 0 & u_n x_n & u_n y_n & u_n \\
+0 & 0 & 0 & -x_n & -y_n & -1 & v_n x_n & v_n y_n & v_n
+\end{bmatrix}
+$$
+
+This leads to a system $Ah = 0$, where $h$ is a vector containing the elements of the homography matrix $H_n$ (row-major order).
+
 3.  **Solve using SVD**: The homogeneous system $Ah = 0$ is solved using Singular Value Decomposition (SVD). The solution $h$ is the last column of $V$ (or last row of $V^T$) corresponding to the smallest singular value of $A$. This $h$ is then reshaped into the $3 \times 3$ normalized homography matrix $H_n$.
 4.  **Denormalize Homography**: The final homography $H$ is recovered by denormalizing $H_n$ using the inverse of the normalization matrices:
-    $$ H = T_2^{-1} H_n T_1 $$
+
+$$
+H = T_2^{-1} H_n T_1
+$$
 
 This entire process is implemented in the `dlt_homography` function, which ensures a robust and accurate estimation of the homography matrix.
 
 ### Affine Transformation
 
-An affine transformation is a special case of a homography where the last row of the transformation matrix is $[0, 0, 1]$. It preserves parallelism of lines but does not necessarily preserve angles or lengths. Affine transformations have 6 degrees of freedom and can represent translation, rotation, scaling, and shearing [7]. They are suitable for aligning images when the camera motion is restricted to translation, rotation, and scaling, and there is no perspective distortion.
+An affine transformation is a special case of a homography where the last row of the transformation matrix is $[0, 0, 1]$. It preserves parallelism of lines but does not necessarily preserve angles or lengths. Affine transformations have 6 degrees of freedom and can represent translation, rotation, scaling, and shearing. They are suitable for aligning images when the camera motion is restricted to translation, rotation, and scaling, and there is no perspective distortion.
 
 The affine transformation matrix $M_{affine}$ is:
 
@@ -135,13 +145,13 @@ To solve for the 6 unknown parameters, at least 3 non-collinear point correspond
 
 ### Euclidean Transformation (Rotation + Translation)
 
-A Euclidean transformation, also known as a rigid transformation, is a special case of an affine transformation that preserves distances and angles. It consists only of rotation and translation, having 3 degrees of freedom (one for rotation angle, two for translation components) [8]. This transformation is appropriate when the images are related by a simple rigid motion without any scaling or shearing.
+A Euclidean transformation, also known as a rigid transformation, is a special case of an affine transformation that preserves distances and angles. It consists only of rotation and translation, having 3 degrees of freedom (one for rotation angle, two for translation components). This transformation is appropriate when the images are related by a simple rigid motion without any scaling or shearing.
 
 The Euclidean transformation matrix $M_{euclidean}$ is:
 
 $$ M_{euclidean} = \begin{bmatrix} \cos\theta & -\sin\theta & t_x \\ \sin\theta & \cos\theta & t_y \\ 0 & 0 & 1 \end{bmatrix} $$
 
-To estimate a Euclidean transformation, at least 2 point correspondences are needed. The provided code uses the **Kabsch algorithm** (also known as Wahba's problem or Procrustes analysis) to find the optimal rotation and translation that minimizes the Root Mean Square Deviation (RMSD) between two sets of paired points [9].
+To estimate a Euclidean transformation, at least 2 point correspondences are needed. The provided code uses the **Kabsch algorithm** (also known as Wahba's problem or Procrustes analysis) to find the optimal rotation and translation that minimizes the Root Mean Square Deviation (RMSD) between two sets of paired points.
 
 #### Kabsch Algorithm Steps:
 1.  **Centroid Calculation**: Compute the centroids of both sets of points, $P_1$ and $P_2$.
@@ -157,7 +167,7 @@ These steps are implemented in the `estimate_euclidean` function, providing a ro
 
 ## Robust Estimation: RANSAC (Random Sample Consensus)
 
-In real-world scenarios, feature matching often produces a significant number of outliers—incorrect correspondences that do not adhere to the true geometric transformation between images. Directly using these noisy matches to estimate a transformation matrix would lead to inaccurate results. To overcome this, a robust estimation technique is required, and **Random Sample Consensus (RANSAC)** is a widely adopted algorithm for this purpose [10].
+In real-world scenarios, feature matching often produces a significant number of outliers—incorrect correspondences that do not adhere to the true geometric transformation between images. Directly using these noisy matches to estimate a transformation matrix would lead to inaccurate results. To overcome this, a robust estimation technique is required, and **Random Sample Consensus (RANSAC)** is a widely adopted algorithm for this purpose.
 
 RANSAC is an iterative method used to estimate the parameters of a mathematical model from a set of observed data that contains a substantial number of outliers. Its core idea is to randomly select a minimal subset of data points (the *sample*) from the input, hypothesize a model based on this subset, and then evaluate how many of the remaining data points (the *consensus set*) are consistent with this model. This process is repeated multiple times, and the model that has the largest consensus set is chosen as the best estimate.
 
@@ -204,7 +214,7 @@ Once the geometric transformation (e.g., homography) between images has been rob
 
 ### Image Warping
 
-Image warping is the process of digitally manipulating an image such that its content is geometrically transformed. In the context of image stitching, this typically means applying the estimated homography (or affine/Euclidean transformation) to one or more source images to project them into the coordinate system of a reference image or a larger panoramic canvas [11].
+Image warping is the process of digitally manipulating an image such that its content is geometrically transformed. In the context of image stitching, this typically means applying the estimated homography (or affine/Euclidean transformation) to one or more source images to project them into the coordinate system of a reference image or a larger panoramic canvas.
 
 The `cv2.warpPerspective` function in OpenCV is commonly used for this purpose. It takes an input image, a $3 \times 3$ transformation matrix (like a homography), and the dimensions of the output canvas. For each pixel in the output canvas, `warpPerspective` calculates its corresponding location in the source image using the inverse of the transformation matrix. This inverse mapping is crucial to avoid holes or gaps in the warped image, as it ensures that every pixel in the destination image gets its intensity value from the source image. Interpolation techniques (e.g., bilinear or bicubic) are then used to determine the pixel values for non-integer coordinates.
 
@@ -237,7 +247,7 @@ By meticulously calculating the canvas dimensions and applying the appropriate t
 
 ## Multi-Band Blending: Laplacian Pyramids
 
-After all images have been warped and aligned onto a common canvas, the final step in creating a seamless panorama is blending them. Simple averaging or feathering techniques can often lead to visible seams, ghosting, or blurring, especially when there are slight misalignments or differences in illumination between the source images. **Multi-band blending**, particularly using **Laplacian pyramids**, is a sophisticated technique designed to achieve seamless transitions by blending images at different frequency levels [12].
+After all images have been warped and aligned onto a common canvas, the final step in creating a seamless panorama is blending them. Simple averaging or feathering techniques can often lead to visible seams, ghosting, or blurring, especially when there are slight misalignments or differences in illumination between the source images. **Multi-band blending**, particularly using **Laplacian pyramids**, is a sophisticated technique designed to achieve seamless transitions by blending images at different frequency levels.
 
 ### The Concept of Image Pyramids
 
@@ -288,7 +298,7 @@ Image stitching is a complex process that integrates various computer vision tec
 
 ### The Image Stitching Pipeline
 
-The typical image stitching pipeline, as exemplified by the provided code, consists of several sequential stages [13]:
+The typical image stitching pipeline, as exemplified by the provided code, consists of several sequential stages:
 
 1.  **Image Acquisition**: This initial step involves capturing a set of images with sufficient overlap. The quality of the input images (e.g., resolution, exposure, focus, and overlap percentage) significantly impacts the final panorama quality.
 
@@ -306,7 +316,7 @@ The typical image stitching pipeline, as exemplified by the provided code, consi
 
 ### Common Challenges in Image Stitching
 
-Despite significant advancements, image stitching still faces several challenges that can degrade the quality of the final panorama [14]:
+Despite significant advancements, image stitching still faces several challenges that can degrade the quality of the final panorama:
 
 1.  **Parallax**: This is one of the most significant challenges. Parallax occurs when the camera's viewpoint changes between shots, causing objects at different depths to shift relative to each other. If the scene is not perfectly planar or the camera is not rotated precisely around its optical center, parallax errors can lead to ghosting, double images, or misalignments, especially for nearby objects. While homographies can perfectly align planar scenes, they struggle with non-planar scenes under parallax.
 
