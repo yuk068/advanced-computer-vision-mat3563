@@ -1,1 +1,1 @@
-First 2 notebooks are Tensorflow, last 2 are pytorch
+readme probably gonna be coming soon, this lab is an absolute unit, probably blog post too
