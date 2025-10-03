@@ -6,10 +6,10 @@ from sklearn.model_selection import train_test_split
 # ==============================
 # CONFIG
 # ==============================
-PROCESSED_DIR = "data/UCF50_processed"
+PROCESSED_DIR = "data/UCF50_processed/flows"
 NPZ_DIR = "data/UCF50_npz"
 
-IMG_SIZE = None       # None → keep original size (your preprocessing already made 224x224)
+IMG_SIZE = None
 TEST_RATIO = 0.2
 RANDOM_SEED = 42
 
@@ -20,20 +20,38 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def load_video_frames(frame_dir, size=IMG_SIZE):
-    """Load all frames from one video folder as numpy array [T, H, W, C]."""
+def load_flow_frames(flow_dir, size=IMG_SIZE):
+    """
+    Load optical flow frames from folder as numpy array [T, H, W, 3, 2].
+    Each frame has 2 images: _flowx and _flowy.
+    """
+    # list all flowx images
+    files = sorted([f for f in os.listdir(flow_dir) if f.endswith("_flowx.jpg")])
     frames = []
-    files = sorted(os.listdir(frame_dir))
-    for file in files:
-        if not file.endswith(".jpg"):
+    for fx in files:
+        fy = fx.replace("_flowx", "_flowy")
+        fx_path = os.path.join(flow_dir, fx)
+        fy_path = os.path.join(flow_dir, fy)
+        if not os.path.exists(fx_path) or not os.path.exists(fy_path):
             continue
-        img = cv2.imread(os.path.join(frame_dir, file))
+
+        img_x = cv2.imread(fx_path)
+        img_y = cv2.imread(fy_path)
         if size is not None:
-            img = cv2.resize(img, size)   # keep option if you ever want smaller
-        frames.append(img)
+            img_x = cv2.resize(img_x, size)
+            img_y = cv2.resize(img_y, size)
+
+        frame = np.stack([img_x, img_y], axis=-1)  # H x W x 3 x 2
+        frames.append(frame)
+
     if len(frames) == 0:
         return None
-    return np.array(frames, dtype=np.uint8)
+
+    # pad first frame with zeros to match dimensions if needed
+    frames = np.array(frames, dtype=np.uint8)
+    pad_frame = np.zeros_like(frames[0], dtype=np.uint8)
+    frames = np.concatenate([pad_frame[None], frames], axis=0)
+    return frames
 
 # ==============================
 # MAIN
@@ -41,14 +59,13 @@ def load_video_frames(frame_dir, size=IMG_SIZE):
 def main():
     ensure_dir(NPZ_DIR)
 
-    frames_root = os.path.join(PROCESSED_DIR, "frames")
-    classes = sorted(os.listdir(frames_root))
+    classes = sorted(os.listdir(PROCESSED_DIR))
     print(f"📂 Found {len(classes)} classes: {classes}")
 
     X, y, video_ids = [], [], []
 
     for label, class_name in enumerate(classes):
-        class_dir = os.path.join(frames_root, class_name)
+        class_dir = os.path.join(PROCESSED_DIR, class_name)
         if not os.path.isdir(class_dir):
             continue
 
@@ -57,7 +74,7 @@ def main():
 
         for vid in videos:
             vid_dir = os.path.join(class_dir, vid)
-            frames = load_video_frames(vid_dir)
+            frames = load_flow_frames(vid_dir)
             if frames is None:
                 print(f"⚠️ Skipping empty {vid}")
                 continue
@@ -88,8 +105,8 @@ def main():
     print(f"✂️ Split into {len(X_train)} train and {len(X_test)} test videos.")
 
     # Save npz
-    train_path = os.path.join(NPZ_DIR, "train.npz")
-    test_path = os.path.join(NPZ_DIR, "test.npz")
+    train_path = os.path.join(NPZ_DIR, "train_flow.npz")
+    test_path = os.path.join(NPZ_DIR, "test_flow.npz")
 
     np.savez_compressed(train_path, X=X_train, y=y_train, ids=ids_train)
     np.savez_compressed(test_path, X=X_test, y=y_test, ids=ids_test)
