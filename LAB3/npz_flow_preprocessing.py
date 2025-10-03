@@ -22,12 +22,12 @@ def ensure_dir(path):
 
 def load_flow_frames(flow_dir, size=IMG_SIZE):
     """
-    Load optical flow frames from folder as numpy array [T, H, W, 3, 2].
+    Load optical flow frames from folder as numpy array [T, H, W, 2].
     Each frame has 2 images: _flowx and _flowy.
     """
-    # list all flowx images
     files = sorted([f for f in os.listdir(flow_dir) if f.endswith("_flowx.jpg")])
     frames = []
+
     for fx in files:
         fy = fx.replace("_flowx", "_flowy")
         fx_path = os.path.join(flow_dir, fx)
@@ -35,22 +35,26 @@ def load_flow_frames(flow_dir, size=IMG_SIZE):
         if not os.path.exists(fx_path) or not os.path.exists(fy_path):
             continue
 
-        img_x = cv2.imread(fx_path)
-        img_y = cv2.imread(fy_path)
+        # Load grayscale (single channel)
+        img_x = cv2.imread(fx_path, cv2.IMREAD_GRAYSCALE)
+        img_y = cv2.imread(fy_path, cv2.IMREAD_GRAYSCALE)
+
         if size is not None:
             img_x = cv2.resize(img_x, size)
             img_y = cv2.resize(img_y, size)
 
-        frame = np.stack([img_x, img_y], axis=-1)  # H x W x 3 x 2
+        # Stack as H x W x 2
+        frame = np.stack([img_x, img_y], axis=-1)
         frames.append(frame)
 
     if len(frames) == 0:
         return None
 
-    # pad first frame with zeros to match dimensions if needed
+    # Optional: pad first frame with zeros if needed
     frames = np.array(frames, dtype=np.uint8)
     pad_frame = np.zeros_like(frames[0], dtype=np.uint8)
     frames = np.concatenate([pad_frame[None], frames], axis=0)
+
     return frames
 
 # ==============================
@@ -85,10 +89,8 @@ def main():
 
         print(f"✅ Done class {class_name}")
 
-    # Convert to numpy arrays (object dtype because videos have variable length)
     X = np.array(X, dtype=object)
     y = np.array(y)
-
     print(f"📊 Loaded {len(X)} videos in total.")
 
     # Train/test split
