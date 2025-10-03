@@ -9,12 +9,12 @@ SRC_DIR = "data/UCF50" 				# Original dataset
 DOWNSAMPLED_DIR = "data/UCF50_downsampled"
 PROCESSED_DIR = "data/UCF50_processed"
 
-FPS = 10 							# Target FPS
-SIZE = (224, 224) 					# Target resize
+FPS = 5 							# Target FPS
+SIZE = (112, 112) 					# Target resize
 
 # Number of classes to use (selected uniformly from sorted list)
 # Example: CLASS_NUM = 10 → picks 10 evenly spaced classes alphabetically
-CLASS_NUM = 15
+CLASS_NUM = 5
 
 # Flags
 DO_DOWNSAMPLE = True 	# True if you want resizing+fps
