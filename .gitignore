@@ -5,6 +5,7 @@
 **/*.pyo
 
 **/data/*/
+**/models/*/
 
 !**/data/*.md
 !**/data/*.txt
